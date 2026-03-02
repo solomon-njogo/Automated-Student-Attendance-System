@@ -83,3 +83,28 @@ This project is part of the **APT3020** coursework and is completed as **group w
 1. Solomon Njogo  
 2. Ted  
 3. Shawn
+
+### Database Schema & Initialization
+
+This project uses a simple SQLite database file named `db/attendance.db` (created inside the `db` folder) with the following core tables:
+
+- **students**
+  - `id` `INTEGER PRIMARY KEY AUTOINCREMENT`
+  - `reg_number` `TEXT NOT NULL UNIQUE`
+  - `full_name` `TEXT NOT NULL`
+  - `created_at` `TIMESTAMP DEFAULT CURRENT_TIMESTAMP`
+- **attendance_records**
+  - `id` `INTEGER PRIMARY KEY AUTOINCREMENT`
+  - `student_id` `INTEGER NOT NULL` (FK to `students.id`, `ON DELETE CASCADE`)
+  - `session_date` `DATE NOT NULL`
+  - `status` `TEXT NOT NULL` (`'PRESENT'`, `'ABSENT'`, or `'EXCUSED'`)
+  - `created_at` `TIMESTAMP DEFAULT CURRENT_TIMESTAMP`
+  - Unique constraint on (`student_id`, `session_date`) to prevent duplicate records for the same student on the same day.
+
+The SQL definition for this schema lives in `db/schemas/schema.sql`, and you can initialize (or update) the database using the helper script `db/init_db.py`:
+
+```bash
+py db\init_db.py
+```
+
+This will create `db/attendance.db` (if it does not exist) and apply the schema from `db/schemas/schema.sql`. You can then connect to this database from your Flask app or other Python scripts using the standard `sqlite3` module.
