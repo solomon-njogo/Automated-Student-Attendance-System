@@ -5,7 +5,6 @@ The **Automated Student Attendance System** is a simple rule-based web applicati
 
 The system is built using **Python**, **Flask**, and **SQLite**, and focuses on demonstrating how attendance rules can be modeled and checked programmatically.
 
----
 
 ### Objectives
 - **Model attendance policies** in code using clear, rule-based logic.
@@ -13,7 +12,6 @@ The system is built using **Python**, **Flask**, and **SQLite**, and focuses on 
 - **Evaluate** whether each student meets the minimum attendance threshold.
 - **Provide simple outputs** (e.g., valid/invalid attendance) through a Flask-based interface or scripts.
 
----
 
 ### Tech Stack
 - **Language**: Python  
@@ -22,7 +20,6 @@ The system is built using **Python**, **Flask**, and **SQLite**, and focuses on 
 - **Database**: SQLite (`db/attendance.db`)
 - **Methodology**: Rule-based logic (e.g., percentage-based thresholds)
 
----
 
 ### Project Structure (high-level)
 - `app.py` – Flask entrypoint and HTTP API.
@@ -31,7 +28,6 @@ The system is built using **Python**, **Flask**, and **SQLite**, and focuses on 
 - `db/schemas/schema.sql` – Database schema definition.
 - `db/init_db.py` – Helper script to create and migrate the database.
 
----
 
 ### Setup & Installation
 
@@ -94,8 +90,6 @@ The root endpoint `/` returns a simple JSON message confirming that the API is r
   - Invalid (below the requirement).
 - **Testing with mock data**: Use sample data to validate the logic and edge cases.
 
----
-
 ### Database Schema (summary)
 
 The project uses a simple SQLite database with the following core tables:
@@ -115,8 +109,6 @@ The project uses a simple SQLite database with the following core tables:
   - Unique constraint on (`student_id`, `session_date`) to prevent duplicate records for the same student on the same day.
 
 For the full schema, see `db/schemas/schema.sql`.
-
----
 
 ### Development Roadmap
 - **Week 1: Study attendance policies**
@@ -142,7 +134,6 @@ For the full schema, see `db/schemas/schema.sql`.
   - Summarize findings: how rules are applied, limitations, and possible improvements.
   - Finalize this `README.md` and any additional project documentation.
 
----
 
 ### Future Improvements
 - Add authentication for students and lecturers.
@@ -150,11 +141,9 @@ For the full schema, see `db/schemas/schema.sql`.
 - Export attendance reports (PDF/CSV).
 - Integrate with institutional systems (e.g., LMS or student portals).
 
----
-
 This project is part of the **APT3020** coursework and is completed as **group work**, aiming to demonstrate practical application of rule-based systems to real-world academic policies.
 
 ### Group Members
 1. Solomon Njogo  
 2. Ted  
-3. Shawn
+3. Shawn Njoroge
