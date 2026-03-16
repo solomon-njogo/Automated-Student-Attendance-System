@@ -66,8 +66,6 @@ This will create `db/attendance.db` (if it does not exist) and apply the schema 
 py db\init_db.py
 ```
 
----
-
 ### Running the Application
 
 With the virtual environment activated, the database created and initialized as well as dependencies installed:
