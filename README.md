@@ -80,7 +80,6 @@ By default, Flask will start a development server (e.g., on `http://127.0.0.1:50
 Open the URL shown in the terminal to access the API.  
 The root endpoint `/` returns a simple JSON message confirming that the API is running.
 
----
 
 ### Core Scope (planned)
 - **Student management**: Store basic student information.
