@@ -78,6 +78,32 @@ By default, Flask will start a development server (e.g., on `http://127.0.0.1:50
 Open the URL shown in the terminal to access the API.  
 The root endpoint `/` returns a simple JSON message confirming that the API is running.
 
+#### Quick API test (curl examples)
+Assuming the server is running on `http://127.0.0.1:5000`:
+
+```bash
+# Check DB + schema health
+curl http://127.0.0.1:5000/db/health
+
+# Create a student
+curl -X POST http://127.0.0.1:5000/students ^
+  -H "Content-Type: application/json" ^
+  -d "{\"reg_number\":\"ICT/123/2026\",\"full_name\":\"Jane Doe\"}"
+
+# Create a session by date
+curl -X POST http://127.0.0.1:5000/sessions ^
+  -H "Content-Type: application/json" ^
+  -d "{\"session_date\":\"2026-03-18\"}"
+
+# Record attendance (uses session_date and auto-creates session if missing)
+curl -X POST http://127.0.0.1:5000/attendance ^
+  -H "Content-Type: application/json" ^
+  -d "{\"student_id\":1,\"session_date\":\"2026-03-18\",\"status\":\"PRESENT\"}"
+
+# Compute attendance summary (raw + adjusted %, tier, validity, escalation)
+curl http://127.0.0.1:5000/students/1/attendance-summary
+```
+
 
 ### Core Scope (planned)
 - **Student management**: Store basic student information.
@@ -86,6 +112,32 @@ The root endpoint `/` returns a simple JSON message confirming that the API is r
   - Valid (meets or exceeds the required percentage), or  
   - Invalid (below the requirement).
 - **Testing with mock data**: Use sample data to validate the logic and edge cases.
+
+### Attendance Policies Implemented (Week 1)
+The system implements a **rule-based attendance policy engine** in `attendance_logic.py`, based on the Week 1 policy research.
+
+- **Attendance % (raw)**: \((\text{PRESENT} / \text{TOTAL}) \times 100\)
+- **Attendance % (adjusted)**: \((\text{PRESENT} / (\text{TOTAL} - \text{EXCUSED})) \times 100\)
+  - The system uses **adjusted %** to determine the student’s tier, validity, and escalation level.
+  - Raw % is still computed and returned for transparency.
+
+#### Tier thresholds (based on adjusted %)
+- **91%–100%**: Excellent
+- **75%–90%**: Satisfactory
+- **60%–74%**: Low / At Risk
+- **50%–59%**: Critical
+- **Below 50%**: Fail / Barred
+
+#### Validity mapping (based on adjusted %)
+- **>= 75%**: Valid
+- **60%–74%**: At Risk
+- **< 60%**: Invalid / Barred
+
+#### Notification / escalation triggers (based on adjusted %)
+- **< 85% and >= 75%**: Early Warning
+- **< 75%**: Academic Alert
+- **< 65%**: Formal Intervention
+- **< 50%**: Critical - Barred
 
 ### Database Schema (summary)
 
@@ -97,13 +149,18 @@ The project uses a simple SQLite database with the following core tables:
   - `full_name` `TEXT NOT NULL`
   - `created_at` `TIMESTAMP DEFAULT CURRENT_TIMESTAMP`
 
+- **sessions**
+  - `id` `INTEGER PRIMARY KEY AUTOINCREMENT`
+  - `session_date` `DATE NOT NULL UNIQUE`
+  - `created_at` `TIMESTAMP DEFAULT CURRENT_TIMESTAMP`
+
 - **attendance_records**
   - `id` `INTEGER PRIMARY KEY AUTOINCREMENT`
   - `student_id` `INTEGER NOT NULL` (FK to `students.id`, `ON DELETE CASCADE`)
-  - `session_date` `DATE NOT NULL`
+  - `session_id` `INTEGER NOT NULL` (FK to `sessions.id`, `ON DELETE CASCADE`)
   - `status` `TEXT NOT NULL` (`'PRESENT'`, `'ABSENT'`, or `'EXCUSED'`)
   - `created_at` `TIMESTAMP DEFAULT CURRENT_TIMESTAMP`
-  - Unique constraint on (`student_id`, `session_date`) to prevent duplicate records for the same student on the same day.
+  - Unique constraint on (`student_id`, `session_id`) to prevent duplicate records for the same student on the same session.
 
 For the full schema, see `db/schemas/schema.sql`.
 
