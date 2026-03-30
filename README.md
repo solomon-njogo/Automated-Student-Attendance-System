@@ -116,8 +116,8 @@ curl http://127.0.0.1:5000/students/1/attendance-summary
 ### Attendance Policies Implemented (Week 1)
 The system implements a **rule-based attendance policy engine** in `attendance_logic.py`, based on the Week 1 policy research.
 
-- **Attendance % (raw)**: \((\text{PRESENT} / \text{TOTAL}) \times 100\)
-- **Attendance % (adjusted)**: \((\text{PRESENT} / (\text{TOTAL} - \text{EXCUSED})) \times 100\)
+- **Attendance % (raw)** — `(PRESENT / TOTAL) * 100`, where `TOTAL` is every recorded session (present + absent + excused).
+- **Attendance % (adjusted)** — `(PRESENT / (TOTAL - EXCUSED)) * 100`; excused sessions are not counted in the denominator.
   - The system uses **adjusted %** to determine the student’s tier, validity, and escalation level.
   - Raw % is still computed and returned for transparency.
 
@@ -199,5 +199,5 @@ This project is part of the **APT3020** coursework and is completed as **group w
 
 ### Group Members
 1. Solomon Njogo  
-2. Ted  
+2. Ted Mbatia
 3. Shawn Njoroge
