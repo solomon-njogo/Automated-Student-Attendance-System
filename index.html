@@ -33,35 +33,50 @@
 <pre id="output"></pre>
 
 <script>
-const BASE = "http://127.0.0.1:5000";
+/** Same-origin relative URLs so the page works when served from Flask (any host/port). */
+const API = (path) => (path.startsWith("/") ? path : `/${path}`);
 
 function show(data) {
     document.getElementById("output").innerText = JSON.stringify(data, null, 2);
 }
 
+async function handleJsonResponse(r) {
+    const text = await r.text();
+    let data;
+    try {
+        data = text ? JSON.parse(text) : null;
+    } catch {
+        data = { error: "Invalid JSON from server", raw: text };
+    }
+    if (!r.ok) {
+        data = data && typeof data === "object" && "error" in data ? data : { error: data ?? text, status: r.status };
+    }
+    show(data);
+}
+
 function addStudent() {
-    fetch(BASE + "/students", {
+    fetch(API("/students"), {
         method: "POST",
         headers: {"Content-Type": "application/json"},
         body: JSON.stringify({
             reg_number: document.getElementById("reg").value,
             full_name: document.getElementById("name").value
         })
-    }).then(r => r.json()).then(show);
+    }).then(handleJsonResponse);
 }
 
 function createSession() {
-    fetch(BASE + "/sessions", {
+    fetch(API("/sessions"), {
         method: "POST",
         headers: {"Content-Type": "application/json"},
         body: JSON.stringify({
             session_date: document.getElementById("date").value
         })
-    }).then(r => r.json()).then(show);
+    }).then(handleJsonResponse);
 }
 
 function markAttendance() {
-    fetch(BASE + "/attendance", {
+    fetch(API("/attendance"), {
         method: "POST",
         headers: {"Content-Type": "application/json"},
         body: JSON.stringify({
@@ -69,14 +84,12 @@ function markAttendance() {
             session_date: document.getElementById("session_date").value,
             status: document.getElementById("status").value
         })
-    }).then(r => r.json()).then(show);
+    }).then(handleJsonResponse);
 }
 
 function getSummary() {
     const id = document.getElementById("summary_id").value;
-    fetch(BASE + "/students/" + id + "/attendance-summary")
-        .then(r => r.json())
-        .then(show);
+    fetch(API(`/students/${encodeURIComponent(id)}/attendance-summary`)).then(handleJsonResponse);
 }
 </script>
 

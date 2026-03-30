@@ -4,7 +4,7 @@ import sqlite3
 from pathlib import Path
 from typing import Any
 
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_from_directory
 
 from attendance_logic import AttendanceStatus, compute_attendance_summary
 
@@ -17,6 +17,12 @@ DB_PATH = BASE_DIR / "db" / "attendance.db"
 @app.route("/", methods=["GET"])
 def index():
     return jsonify({"message": "Automated Student Attendance System API is running."})
+
+
+@app.route("/ui", methods=["GET"])
+@app.route("/ui/", methods=["GET"])
+def ui():
+    return send_from_directory(BASE_DIR, "index.html")
 
 
 @app.errorhandler(FileNotFoundError)
