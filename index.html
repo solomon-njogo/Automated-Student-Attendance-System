@@ -2,81 +2,137 @@
 <html>
 <head>
     <title>Attendance System</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f6f9;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: auto;
+        }
+
+        .card {
+            background: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        input, select, button {
+            width: 100%;
+            padding: 10px;
+            margin-top: 8px;
+            margin-bottom: 10px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            font-size: 14px;
+        }
+
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        button:hover {
+            background: #0056b3;
+        }
+
+        pre {
+            background: #111;
+            color: #0f0;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+        }
+    </style>
 </head>
 <body>
 
-<h1>Student Attendance System</h1>
+<h1> Student Attendance System</h1>
 
-<h2>Add Student</h2>
-<input id="reg" placeholder="Reg Number">
-<input id="name" placeholder="Full Name">
-<button onclick="addStudent()">Add</button>
+<div class="container">
 
-<h2>Create Session</h2>
-<input id="date" placeholder="YYYY-MM-DD">
-<button onclick="createSession()">Create</button>
+    <div class="card">
+        <h2>Add Student</h2>
+        <input id="reg" placeholder="Reg Number">
+        <input id="name" placeholder="Full Name">
+        <button onclick="addStudent()">Add Student</button>
+    </div>
 
-<h2>Mark Attendance</h2>
-<input id="student_id" placeholder="Student ID">
-<input id="session_date" placeholder="YYYY-MM-DD">
-<select id="status">
-    <option>PRESENT</option>
-    <option>ABSENT</option>
-    <option>LATE</option>
-</select>
-<button onclick="markAttendance()">Submit</button>
+    <div class="card">
+        <h2>Create Session</h2>
+        <input type="date" id="date">
+        <button onclick="createSession()">Create Session</button>
+    </div>
 
-<h2>Get Summary</h2>
-<input id="summary_id" placeholder="Student ID">
-<button onclick="getSummary()">Get Summary</button>
+    <div class="card">
+        <h2>Mark Attendance</h2>
+        <input id="student_id" placeholder="Student ID">
+        <input type="date" id="session_date">
+        <select id="status">
+            <option>PRESENT</option>
+            <option>ABSENT</option>
+            <option>LATE</option>
+        </select>
+        <button onclick="markAttendance()">Submit Attendance</button>
+    </div>
 
-<pre id="output"></pre>
+    <div class="card">
+        <h2>Get Summary</h2>
+        <input id="summary_id" placeholder="Student ID">
+        <button onclick="getSummary()">Get Summary</button>
+    </div>
+
+    <div class="card">
+        <h2>Output</h2>
+        <pre id="output"></pre>
+    </div>
+
+</div>
 
 <script>
-/** Same-origin relative URLs so the page works when served from Flask (any host/port). */
-const API = (path) => (path.startsWith("/") ? path : `/${path}`);
+const BASE = "http://127.0.0.1:5000";
 
 function show(data) {
     document.getElementById("output").innerText = JSON.stringify(data, null, 2);
 }
 
-async function handleJsonResponse(r) {
-    const text = await r.text();
-    let data;
-    try {
-        data = text ? JSON.parse(text) : null;
-    } catch {
-        data = { error: "Invalid JSON from server", raw: text };
-    }
-    if (!r.ok) {
-        data = data && typeof data === "object" && "error" in data ? data : { error: data ?? text, status: r.status };
-    }
-    show(data);
-}
-
 function addStudent() {
-    fetch(API("/students"), {
+    fetch(BASE + "/students", {
         method: "POST",
         headers: {"Content-Type": "application/json"},
         body: JSON.stringify({
             reg_number: document.getElementById("reg").value,
             full_name: document.getElementById("name").value
         })
-    }).then(handleJsonResponse);
+    }).then(r => r.json()).then(show);
 }
 
 function createSession() {
-    fetch(API("/sessions"), {
+    fetch(BASE + "/sessions", {
         method: "POST",
         headers: {"Content-Type": "application/json"},
         body: JSON.stringify({
             session_date: document.getElementById("date").value
         })
-    }).then(handleJsonResponse);
+    }).then(r => r.json()).then(show);
 }
 
 function markAttendance() {
-    fetch(API("/attendance"), {
+    fetch(BASE + "/attendance", {
         method: "POST",
         headers: {"Content-Type": "application/json"},
         body: JSON.stringify({
@@ -84,12 +140,14 @@ function markAttendance() {
             session_date: document.getElementById("session_date").value,
             status: document.getElementById("status").value
         })
-    }).then(handleJsonResponse);
+    }).then(r => r.json()).then(show);
 }
 
 function getSummary() {
     const id = document.getElementById("summary_id").value;
-    fetch(API(`/students/${encodeURIComponent(id)}/attendance-summary`)).then(handleJsonResponse);
+    fetch(BASE + "/students/" + id + "/attendance-summary")
+        .then(r => r.json())
+        .then(show);
 }
 </script>
 
