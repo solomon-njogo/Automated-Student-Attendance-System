@@ -19,7 +19,6 @@ def index():
     return jsonify({"message": "Automated Student Attendance System API is running."})
 
 
-@app.route("/ui", methods=["GET"])
 @app.route("/ui/", methods=["GET"])
 def ui():
     return send_from_directory(BASE_DIR, "index.html")
