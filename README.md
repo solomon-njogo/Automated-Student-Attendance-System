@@ -76,7 +76,14 @@ py app.py
 
 By default, Flask will start a development server (e.g., on `http://127.0.0.1:5000/`).  
 Open the URL shown in the terminal to access the API.  
-The root endpoint `/` returns a simple JSON message confirming that the API is running.
+If the UI has been built, the root endpoint `/` will serve the UI.
+
+#### One-command run (build UI + start server)
+From the project root:
+
+```bash
+py run.py
+```
 
 #### Quick API test (curl examples)
 Assuming the server is running on `http://127.0.0.1:5000`:

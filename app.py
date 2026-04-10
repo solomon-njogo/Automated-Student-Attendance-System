@@ -13,16 +13,31 @@ app = Flask(__name__)
 
 BASE_DIR = Path(__file__).resolve().parent
 DB_PATH = BASE_DIR / "db" / "attendance.db"
+UI_DIST_DIR = BASE_DIR / "ui_dist"
 
 
 @app.route("/", methods=["GET"])
-def index():
+@app.route("/<path:path>", methods=["GET"])
+def ui_root(path: str = ""):
+    """
+    Serve the demo UI (a client-side SPA) from the site root.
+
+    - In production (Render), the built Vite output lives in ./ui_dist
+    - For SPA routes (e.g. /students/1), fall back to index.html
+    """
+
+    if not (UI_DIST_DIR / "index.html").is_file():
+        return jsonify({"message": "Automated Student Attendance System API is running."})
+
+    if path and (UI_DIST_DIR / path).is_file():
+        return send_from_directory(UI_DIST_DIR, path)
+
+    return send_from_directory(UI_DIST_DIR, "index.html")
+
+
+@app.route("/api", methods=["GET"])
+def api_index():
     return jsonify({"message": "Automated Student Attendance System API is running."})
-
-
-@app.route("/ui/", methods=["GET"])
-def ui():
-    return send_from_directory(BASE_DIR, "index.html")
 
 
 @app.errorhandler(FileNotFoundError)
