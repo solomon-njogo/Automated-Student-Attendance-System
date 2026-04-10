@@ -9,6 +9,10 @@ import shutil
 
 ROOT = Path(__file__).resolve().parent
 
+# Expose the Flask app for production servers (e.g., Render/Gunicorn).
+# This allows: gunicorn run:app
+from app import app  # noqa: E402
+
 
 def _run(cmd: list[str], *, cwd: Path) -> None:
     subprocess.run(cmd, cwd=str(cwd), check=True)
@@ -48,8 +52,16 @@ def main() -> int:
     npm_cmd = _npm_command()
     _run([*npm_cmd, "--prefix", "frontend", "run", "build"], cwd=ROOT)
 
-    # Start Flask (app.py binds to $PORT if provided, else 5000)
-    _run([sys.executable, str(ROOT / "app.py")], cwd=ROOT)
+    # Start the server in a cross-platform way.
+    # - On Render/Linux you should use Gunicorn (see render.yaml).
+    # - On Windows, Gunicorn doesn't work; Waitress does.
+    port = int(os.environ.get("PORT", "5000"))
+    if sys.platform.startswith("win"):
+        from waitress import serve  # type: ignore
+
+        serve(app, host="0.0.0.0", port=port)
+    else:
+        app.run(host="0.0.0.0", port=port, debug=False)
     return 0
 
 
