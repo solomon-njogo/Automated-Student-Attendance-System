@@ -9,7 +9,7 @@ type NavItem = { to: string; label: string; end?: boolean }
 export default function LayoutShell({
   children,
   title = 'Attendance Demo',
-  subtitle = 'Admin / Lecturer UI',
+  subtitle = '',
 }: {
   children: React.ReactNode
   title?: string
@@ -26,7 +26,6 @@ export default function LayoutShell({
       { to: '/', label: 'Dashboard', end: true },
       { to: '/students', label: 'Students' },
       { to: '/sessions', label: 'Sessions' },
-      { to: '/attendance', label: 'Attendance' },
     ],
     [],
   )
@@ -109,7 +108,7 @@ export default function LayoutShell({
 
         <div className="shellFootnote">
           <div className="shellFootnoteRow">
-            <div className="help">API served from the same service.</div>
+            <div className="help">API and Database Health Status.</div>
             {dbError ? (
               <Stamp label="DB" value="Error" tone="danger" />
             ) : !db ? (

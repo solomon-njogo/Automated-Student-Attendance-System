@@ -7,7 +7,11 @@ from typing import Any
 
 from flask import Flask, jsonify, request, send_from_directory
 
-from attendance_logic import AttendanceStatus, compute_attendance_summary
+from attendance_logic import (
+    AttendanceStatus,
+    compute_attendance_summary,
+    compute_attendance_summary_from_counts,
+)
 
 app = Flask(__name__)
 
@@ -79,7 +83,7 @@ def _require_json() -> dict[str, Any] | tuple[Any, int]:
     return data
 
 
-@app.route("/db/health", methods=["GET"])
+@app.route("/api/db/health", methods=["GET"])
 def db_health():
     required_tables = ["students", "sessions", "attendance_records"]
     with _db_connect() as conn:
@@ -105,7 +109,151 @@ def db_health():
     )
 
 
-@app.route("/students", methods=["GET"])
+@app.route("/api/dashboard/overview", methods=["GET"])
+def dashboard_overview():
+    """
+    Aggregated attendance for the dashboard: cohort stats, per-session rates,
+    mean student adjusted %, tier distribution. Student×session slots use
+    COALESCE(missing record, ABSENT) like student attendance endpoints.
+    """
+    required_tables = ["students", "sessions", "attendance_records"]
+    empty_cohort = {
+        "present": 0,
+        "absent": 0,
+        "excused": 0,
+        "total_slots": 0,
+        "raw_pct": 0.0,
+        "adjusted_pct": 0.0,
+    }
+
+    with _db_connect() as conn:
+        table_rows = conn.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';"
+        ).fetchall()
+        existing = {r["name"] for r in table_rows}
+        missing = [t for t in required_tables if t not in existing]
+
+        counts: dict[str, int] = {}
+        for t in required_tables:
+            if t in existing:
+                counts[t] = int(conn.execute(f"SELECT COUNT(*) AS c FROM {t}").fetchone()["c"])
+
+        if missing:
+            return jsonify(
+                {
+                    "counts": counts,
+                    "mean_student_adjusted_pct": None,
+                    "cohort": empty_cohort,
+                    "by_session": [],
+                    "tier_counts": {},
+                }
+            )
+
+        rows = conn.execute(
+            """
+            SELECT
+              st.id AS student_id,
+              s.id AS session_id,
+              s.session_date AS session_date,
+              COALESCE(ar.status, 'ABSENT') AS status
+            FROM students st
+            CROSS JOIN sessions s
+            LEFT JOIN attendance_records ar
+              ON ar.student_id = st.id AND ar.session_id = s.id
+            ORDER BY s.session_date ASC, s.id ASC, st.id ASC
+            """
+        ).fetchall()
+
+    cohort_p = cohort_a = cohort_e = 0
+    by_session: dict[int, dict[str, Any]] = {}
+    by_student_statuses: dict[int, list[str]] = {}
+
+    for r in rows:
+        sid = int(r["session_id"])
+        stu = int(r["student_id"])
+        stat = str(r["status"]).upper()
+
+        if sid not in by_session:
+            by_session[sid] = {
+                "session_date": str(r["session_date"]),
+                "present": 0,
+                "absent": 0,
+                "excused": 0,
+            }
+        b = by_session[sid]
+        if stat == AttendanceStatus.PRESENT.value:
+            b["present"] += 1
+            cohort_p += 1
+        elif stat == AttendanceStatus.ABSENT.value:
+            b["absent"] += 1
+            cohort_a += 1
+        else:
+            b["excused"] += 1
+            cohort_e += 1
+
+        by_student_statuses.setdefault(stu, []).append(stat)
+
+    total_slots = cohort_p + cohort_a + cohort_e
+    cohort_summary = compute_attendance_summary_from_counts(
+        present=cohort_p, absent=cohort_a, excused=cohort_e
+    )
+    cohort_out = {
+        "present": cohort_p,
+        "absent": cohort_a,
+        "excused": cohort_e,
+        "total_slots": total_slots,
+        "raw_pct": cohort_summary.raw_pct,
+        "adjusted_pct": cohort_summary.adjusted_pct,
+    }
+
+    by_session_list: list[dict[str, Any]] = []
+    for sess_id, bucket in sorted(
+        by_session.items(), key=lambda kv: (kv[1]["session_date"], kv[0])
+    ):
+        sess_sum = compute_attendance_summary_from_counts(
+            present=bucket["present"],
+            absent=bucket["absent"],
+            excused=bucket["excused"],
+        )
+        by_session_list.append(
+            {
+                "session_id": sess_id,
+                "session_date": bucket["session_date"],
+                "present": bucket["present"],
+                "absent": bucket["absent"],
+                "excused": bucket["excused"],
+                "adjusted_pct": sess_sum.adjusted_pct,
+            }
+        )
+
+    tier_counts: dict[str, int] = {}
+    mean_student_adjusted_pct: float | None = None
+    if by_student_statuses:
+        adjusted_sum = 0.0
+        n = 0
+        for statuses in by_student_statuses.values():
+            if not statuses:
+                continue
+            summ = compute_attendance_summary(statuses)
+            tier_label = summ.tier.value
+            tier_counts[tier_label] = tier_counts.get(tier_label, 0) + 1
+            adjusted_sum += summ.adjusted_pct
+            n += 1
+        if n:
+            mean_student_adjusted_pct = round(adjusted_sum / n, 2)
+
+    return jsonify(
+        {
+            "counts": counts,
+            "mean_student_adjusted_pct": mean_student_adjusted_pct,
+            "cohort": cohort_out,
+            "by_session": by_session_list,
+            "tier_counts": tier_counts,
+        }
+    )
+
+
+@app.route("/api/students", methods=["GET"])
 def list_students():
     with _db_connect() as conn:
         rows = conn.execute(
@@ -114,7 +262,7 @@ def list_students():
     return jsonify([dict(r) for r in rows])
 
 
-@app.route("/students", methods=["POST"])
+@app.route("/api/students", methods=["POST"])
 def create_student():
     data = _require_json()
     if isinstance(data, tuple):
@@ -138,7 +286,7 @@ def create_student():
     return jsonify({"id": student_id, "reg_number": reg_number, "full_name": full_name}), 201
 
 
-@app.route("/sessions", methods=["GET"])
+@app.route("/api/sessions", methods=["GET"])
 def list_sessions():
     with _db_connect() as conn:
         rows = conn.execute(
@@ -162,7 +310,7 @@ def _get_or_create_session_id(conn: sqlite3.Connection, session_date: str) -> in
     return int(cur.lastrowid)
 
 
-@app.route("/sessions", methods=["POST"])
+@app.route("/api/sessions", methods=["POST"])
 def create_session():
     data = _require_json()
     if isinstance(data, tuple):
@@ -181,7 +329,41 @@ def create_session():
     return jsonify({"id": session_id, "session_date": session_date}), 201
 
 
-@app.route("/attendance", methods=["POST"])
+@app.route("/api/sessions/<int:session_id>/attendance", methods=["GET"])
+def session_attendance(session_id: int):
+    """
+    Get attendance status for every student for a single session.
+
+    Missing records are treated as ABSENT by default.
+    """
+
+    with _db_connect() as conn:
+        ses = conn.execute(
+            "SELECT id, session_date FROM sessions WHERE id = ?",
+            (session_id,),
+        ).fetchone()
+        if not ses:
+            return _json_error(f"Session {session_id} not found.", status_code=404)
+
+        rows = conn.execute(
+            """
+            SELECT
+              st.id AS student_id,
+              st.reg_number AS reg_number,
+              st.full_name AS full_name,
+              COALESCE(ar.status, 'ABSENT') AS status
+            FROM students st
+            LEFT JOIN attendance_records ar
+              ON ar.student_id = st.id AND ar.session_id = ?
+            ORDER BY lower(st.full_name) ASC, st.id ASC
+            """,
+            (session_id,),
+        ).fetchall()
+
+    return jsonify({"session": dict(ses), "students": [dict(r) for r in rows]})
+
+
+@app.route("/api/attendance", methods=["POST"])
 def upsert_attendance():
     """
     Record attendance for a student + session.
@@ -251,7 +433,7 @@ def upsert_attendance():
     return jsonify({"student_id": student_id, "session_id": session_id, "status": status.value}), 200
 
 
-@app.route("/attendance/bulk", methods=["POST"])
+@app.route("/api/attendance/bulk", methods=["POST"])
 def bulk_upsert_attendance():
     """
     Bulk record attendance for many students for a single session.
@@ -340,7 +522,7 @@ def bulk_upsert_attendance():
     return jsonify({"session_id": session_id, "saved": len(parsed)}), 200
 
 
-@app.route("/students/<int:student_id>/attendance-records", methods=["GET"])
+@app.route("/api/students/<int:student_id>/attendance-records", methods=["GET"])
 def student_attendance_records(student_id: int):
     with _db_connect() as conn:
         # Treat missing records as ABSENT by default.
@@ -368,7 +550,7 @@ def student_attendance_records(student_id: int):
     return jsonify([dict(r) for r in rows])
 
 
-@app.route("/students/<int:student_id>/attendance-summary", methods=["GET"])
+@app.route("/api/students/<int:student_id>/attendance-summary", methods=["GET"])
 def student_attendance_summary(student_id: int):
     with _db_connect() as conn:
         # Validate student exists (so empty sessions doesn't look like a missing student).

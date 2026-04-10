@@ -74,7 +74,6 @@ export default function StudentDetailPage() {
         <div className="grid grid2">
           <Card
             title="Summary"
-            subtitle="GET /students/:id/attendance-summary"
             aside={
               summary ? (
                 <Stamp
@@ -116,16 +115,40 @@ export default function StudentDetailPage() {
                     <div className="metricValue">{summary.sessions_counted}</div>
                   </div>
                 </div>
-                <div className="help">
-                  Adjusted % excludes excused sessions from the denominator (per your policy rules).
-                </div>
               </div>
             )}
           </Card>
 
+          {summary ? (
+            <Card title="Logic (for presentation)" subtitle="Simple rules used for tier, validity, escalation, and %">
+              <div className="logicNotes" role="region" aria-label="How summary metrics are calculated">
+                <div className="logicNote">
+                  <div className="logicNoteTitle">Raw &amp; adjusted %</div>
+                  <p className="logicNoteBody">
+                    Raw % = present ÷ all sessions × 100. Adjusted % = present ÷ (sessions minus excused) × 100; if every
+                    session is excused, adjusted % is 100%.
+                  </p>
+                </div>
+                <div className="logicNote">
+                  <div className="logicNoteTitle">Tier</div>
+                  <p className="logicNoteBody">
+                    Tier is read from <strong>adjusted</strong> %: ≥91 Excellent, ≥75 Satisfactory, ≥60 Low/At Risk, ≥50
+                    Critical, &lt;50 Fail/Barred.
+                  </p>
+                </div>
+                <div className="logicNote">
+                  <div className="logicNoteTitle">Validity &amp; escalation</div>
+                  <p className="logicNoteBody">
+                    Validity uses adjusted %: Valid ≥75, At Risk 60–74, Invalid/Barred &lt;60. Escalation picks the worst
+                    matching rule (&lt;50 Critical–Barred down to &lt;85 Early Warning when still ≥75).
+                  </p>
+                </div>
+              </div>
+            </Card>
+          ) : null}
+
           <Card
             title="Attendance timeline"
-            subtitle="GET /students/:id/attendance-records"
             className="spanAll"
           >
             {records.length === 0 ? (
@@ -134,21 +157,23 @@ export default function StudentDetailPage() {
                 body="Create sessions (or stamp attendance by date) to populate the timeline."
               />
             ) : (
-              <div className="timeline">
-                {[...records].reverse().map((r) => (
-                  <div key={r.session_id} className="timelineRow">
-                    <div className="timelineDot" aria-hidden="true" />
-                    <div className="timelineMain">
-                      <div className="timelineDate">{r.session_date}</div>
-                      <div className="timelineMeta">
-                        <span className="badge">
-                          Session <strong style={{ marginLeft: 6 }}>{r.session_id}</strong>
-                        </span>
-                        <Stamp label="Status" value={r.status} tone={toneForStatus(r.status)} />
+              <div className="grid" style={{ gap: 12 }}>
+                <div className="timeline">
+                  {[...records].reverse().map((r) => (
+                    <div key={r.session_id} className="timelineRow">
+                      <div className="timelineDot" aria-hidden="true" />
+                      <div className="timelineMain">
+                        <div className="timelineDate">{r.session_date}</div>
+                        <div className="timelineMeta">
+                          <span className="badge">
+                            Session <strong style={{ marginLeft: 6 }}>{r.session_id}</strong>
+                          </span>
+                          <Stamp label="Status" value={r.status} tone={toneForStatus(r.status)} />
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             )}
           </Card>

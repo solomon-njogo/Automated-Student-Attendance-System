@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '../api/client'
 import type { AttendanceStatus, Session, Student } from '../api/types'
 import Card from '../components/Card'
@@ -15,8 +15,10 @@ function isTypingTarget(el: EventTarget | null) {
 }
 
 export default function AttendancePage() {
+  const navigate = useNavigate()
   const [params] = useSearchParams()
   const preselectDate = params.get('session_date') ?? ''
+  const preselectSessionIdRaw = params.get('session_id') ?? ''
 
   const [sessions, setSessions] = useState<Session[]>([])
   const [students, setStudents] = useState<Student[]>([])
@@ -29,7 +31,7 @@ export default function AttendancePage() {
 
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
-  const [saveOk, setSaveOk] = useState<string | null>(null)
+  const [rosterError, setRosterError] = useState<string | null>(null)
 
   const sessionById = useMemo(() => {
     const map = new Map<number, Session>()
@@ -57,7 +59,10 @@ export default function AttendancePage() {
         setSessions(ses)
         setStudents(stu)
 
-        if (preselectDate) {
+        const urlSid = Number(preselectSessionIdRaw)
+        if (Number.isFinite(urlSid) && urlSid > 0 && ses.some((s) => s.id === urlSid)) {
+          setSessionId(urlSid)
+        } else if (preselectDate) {
           const match = ses.find((s) => s.session_date === preselectDate)
           if (match) setSessionId(match.id)
         }
@@ -71,7 +76,35 @@ export default function AttendancePage() {
     return () => {
       cancelled = true
     }
-  }, [preselectDate])
+  }, [preselectDate, preselectSessionIdRaw])
+
+  useEffect(() => {
+    if (!sessionId) {
+      setStatuses({})
+      setRosterError(null)
+      return
+    }
+    let cancelled = false
+    setRosterError(null)
+    ;(async () => {
+      try {
+        const data = await api.sessionAttendance(sessionId)
+        if (cancelled) return
+        const next: StatusByStudent = {}
+        for (const s of data.students) next[s.student_id] = s.status
+        setStatuses(next)
+        setSaveError(null)
+      } catch (e) {
+        if (!cancelled) {
+          setRosterError(e instanceof Error ? e.message : 'Failed to load roster')
+          setStatuses({})
+        }
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [sessionId])
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
@@ -121,7 +154,6 @@ export default function AttendancePage() {
     const next: StatusByStudent = {}
     for (const s of students) next[s.id] = status
     setStatuses(next)
-    setSaveOk(null)
     setSaveError(null)
   }
 
@@ -137,11 +169,10 @@ export default function AttendancePage() {
     if (!sessionId) return
     setSaving(true)
     setSaveError(null)
-    setSaveOk(null)
     try {
       const records = orderedStudents.map((s) => ({ student_id: s.id, status: statuses[s.id] }))
       await api.bulkUpsertAttendance({ session_id: sessionId, records })
-      setSaveOk('Attendance saved.')
+      navigate(`/sessions/${sessionId}`, { replace: true })
     } catch (e) {
       setSaveError(e instanceof Error ? e.message : 'Failed to save')
     } finally {
@@ -154,7 +185,10 @@ export default function AttendancePage() {
       <div className="topbar">
         <div className="pageTitle">
           <h1>Attendance</h1>
-          <p>Pick a session, then mark every student. Hotkeys: Shift+P all present, Shift+A all absent.</p>
+          <p>
+            Choose the session for this class, mark each student, then save. You’ll return to that session’s
+            detail page with the updated roster. Hotkeys: Shift+P all present, Shift+A all absent.
+          </p>
         </div>
         <div className="row">
           <Link className="btn" to="/sessions/new">
@@ -179,9 +213,8 @@ export default function AttendancePage() {
                     onChange={(e) => {
                       const next = Number(e.target.value)
                       setSessionId(Number.isFinite(next) && next > 0 ? next : null)
-                      setSaveOk(null)
                       setSaveError(null)
-                      setStatuses({})
+                      setRosterError(null)
                       setSelectedStudentId(null)
                     }}
                   >
@@ -207,6 +240,8 @@ export default function AttendancePage() {
           <Card title="Mark attendance" subtitle="P/A/E for selected row">
             {!sessionId ? (
               <EmptyState title="Select a session first" hint="You can create a new session if you don’t see today." />
+            ) : rosterError ? (
+              <EmptyState title="Couldn’t load this session" body={rosterError} />
             ) : students.length === 0 ? (
               <EmptyState title="No students yet" body="Add students before taking attendance." hint="Go to Students → Add student." />
             ) : (
@@ -291,10 +326,6 @@ export default function AttendancePage() {
 
                 {saveError ? (
                   <EmptyState title="Couldn’t save attendance" body={saveError} />
-                ) : saveOk ? (
-                  <div className="notice noticeOk" role="status" aria-live="polite">
-                    {saveOk}
-                  </div>
                 ) : Object.keys(statuses).length !== students.length ? (
                   <div className="help">
                     Mark all students to enable save ({Object.keys(statuses).length}/{students.length}).

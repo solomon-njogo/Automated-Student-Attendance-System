@@ -3,9 +3,10 @@ import { api } from '../api/client'
 import type { Session } from '../api/types'
 import Card from '../components/Card'
 import EmptyState from '../components/EmptyState'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 
 export default function SessionsPage() {
+  const navigate = useNavigate()
   const [sessions, setSessions] = useState<Session[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -45,7 +46,7 @@ export default function SessionsPage() {
       </div>
 
       <div className="grid">
-        <Card title="Session list" subtitle="GET /sessions">
+        <Card title="Session list">
           {loading ? (
             <div className="help">Loading…</div>
           ) : error ? (
@@ -61,14 +62,50 @@ export default function SessionsPage() {
                       <th style={{ width: 70 }}>ID</th>
                       <th style={{ width: 160 }}>Date</th>
                       <th>Created</th>
+                      <th style={{ width: 220 }}>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {sessions.map((s) => (
-                      <tr key={s.id}>
+                      <tr
+                        key={s.id}
+                        onClick={() => navigate(`/sessions/${s.id}`)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault()
+                            navigate(`/sessions/${s.id}`)
+                          }
+                        }}
+                        role="button"
+                        tabIndex={0}
+                        style={{ cursor: 'pointer' }}
+                        title="Open session attendance"
+                      >
                         <td>{s.id}</td>
                         <td>{s.session_date}</td>
                         <td style={{ color: 'var(--ink-3)' }}>{s.created_at ?? '—'}</td>
+                        <td>
+                          <div className="row" style={{ flexWrap: 'wrap', gap: 8 }}>
+                            <Link
+                              className="btn btnPrimary"
+                              to={`/attendance?session_id=${s.id}`}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              Attendance
+                            </Link>
+                            <Link
+                              className="btn"
+                              to={`/sessions/${s.id}`}
+                              onClick={(e) => {
+                                e.preventDefault()
+                                e.stopPropagation()
+                                navigate(`/sessions/${s.id}`)
+                              }}
+                            >
+                              Details
+                            </Link>
+                          </div>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -77,7 +114,21 @@ export default function SessionsPage() {
 
               <div className="rosterList">
                 {sessions.map((s) => (
-                  <div key={s.id} className="rosterCard">
+                  <div
+                    key={s.id}
+                    className="rosterCard"
+                    onClick={() => navigate(`/sessions/${s.id}`)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault()
+                        navigate(`/sessions/${s.id}`)
+                      }
+                    }}
+                    role="button"
+                    tabIndex={0}
+                    style={{ cursor: 'pointer' }}
+                    title="Open session attendance"
+                  >
                     <div className="rosterMeta">
                       <div className="rosterName">{s.session_date}</div>
                       <div className="rosterSub">
@@ -88,6 +139,26 @@ export default function SessionsPage() {
                           Created <span style={{ marginLeft: 8, color: 'var(--ink-3)' }}>{s.created_at ?? '—'}</span>
                         </span>
                       </div>
+                    </div>
+                    <div className="row" style={{ flexWrap: 'wrap', gap: 8 }}>
+                      <Link
+                        className="btn btnPrimary"
+                        to={`/attendance?session_id=${s.id}`}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        Attendance
+                      </Link>
+                      <Link
+                        className="btn"
+                        to={`/sessions/${s.id}`}
+                        onClick={(e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          navigate(`/sessions/${s.id}`)
+                        }}
+                      >
+                        Details
+                      </Link>
                     </div>
                   </div>
                 ))}

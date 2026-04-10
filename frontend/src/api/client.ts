@@ -4,8 +4,10 @@ import type {
   AttendanceStatus,
   AttendanceBulkUpsertResponse,
   AttendanceUpsertResponse,
+  DashboardOverview,
   DbHealth,
   Session,
+  SessionAttendanceResponse,
   Student,
   StudentSummaryResponse,
 } from './types'
@@ -28,15 +30,19 @@ async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
 
 export const api = {
   dbHealth(): Promise<DbHealth> {
-    return requestJson<DbHealth>('/db/health')
+    return requestJson<DbHealth>('/api/db/health')
+  },
+
+  dashboardOverview(): Promise<DashboardOverview> {
+    return requestJson<DashboardOverview>('/api/dashboard/overview')
   },
 
   listStudents(): Promise<Student[]> {
-    return requestJson<Student[]>('/students')
+    return requestJson<Student[]>('/api/students')
   },
 
   createStudent(input: { reg_number: string; full_name: string }): Promise<Student> {
-    return requestJson<Student>('/students', {
+    return requestJson<Student>('/api/students', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(input),
@@ -44,11 +50,15 @@ export const api = {
   },
 
   listSessions(): Promise<Session[]> {
-    return requestJson<Session[]>('/sessions')
+    return requestJson<Session[]>('/api/sessions')
+  },
+
+  sessionAttendance(sessionId: number): Promise<SessionAttendanceResponse> {
+    return requestJson<SessionAttendanceResponse>(`/api/sessions/${sessionId}/attendance`)
   },
 
   createSession(input: { session_date: string }): Promise<Session> {
-    return requestJson<Session>('/sessions', {
+    return requestJson<Session>('/api/sessions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(input),
@@ -56,7 +66,7 @@ export const api = {
   },
 
   upsertAttendance(input: { student_id: number; session_date: string; status: AttendanceStatus }): Promise<AttendanceUpsertResponse> {
-    return requestJson<AttendanceUpsertResponse>('/attendance', {
+    return requestJson<AttendanceUpsertResponse>('/api/attendance', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(input),
@@ -68,7 +78,7 @@ export const api = {
     session_date?: string
     records: { student_id: number; status: AttendanceStatus }[]
   }): Promise<AttendanceBulkUpsertResponse> {
-    return requestJson<AttendanceBulkUpsertResponse>('/attendance/bulk', {
+    return requestJson<AttendanceBulkUpsertResponse>('/api/attendance/bulk', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(input),
@@ -76,11 +86,11 @@ export const api = {
   },
 
   studentAttendanceRecords(studentId: number): Promise<AttendanceRecord[]> {
-    return requestJson<AttendanceRecord[]>(`/students/${studentId}/attendance-records`)
+    return requestJson<AttendanceRecord[]>(`/api/students/${studentId}/attendance-records`)
   },
 
   studentAttendanceSummary(studentId: number): Promise<StudentSummaryResponse> {
-    return requestJson<StudentSummaryResponse>(`/students/${studentId}/attendance-summary`)
+    return requestJson<StudentSummaryResponse>(`/api/students/${studentId}/attendance-summary`)
   },
 }
 

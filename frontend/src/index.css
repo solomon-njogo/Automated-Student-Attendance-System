@@ -615,6 +615,49 @@ select {
   background: rgba(30, 78, 216, 0.08);
 }
 
+/* Presentation: short policy explanations on student detail */
+.logicNotes {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 640px) {
+  .logicNotes {
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  }
+}
+
+.logicNote {
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(30, 78, 216, 0.22);
+  background: rgba(30, 78, 216, 0.06);
+  padding: 10px 12px;
+  min-width: 0;
+}
+
+.logicNoteInline {
+  max-width: 100%;
+}
+
+.logicNoteTitle {
+  font-weight: 700;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-2);
+  margin-bottom: 6px;
+}
+
+.logicNoteBody {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ink-1);
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
 .stickyCol {
   position: sticky;
   top: 22px;
@@ -773,6 +816,68 @@ tr:hover td {
   line-height: 1;
   letter-spacing: -0.6px;
   font-weight: 800;
+}
+
+.dashboardHero {
+  display: grid;
+  gap: 20px;
+}
+
+@media (min-width: 900px) {
+  .dashboardHero {
+    grid-template-columns: 1fr minmax(0, 1.1fr);
+    align-items: start;
+  }
+}
+
+.dashboardHeroMain {
+  min-width: 0;
+}
+
+.dashboardHeroValue {
+  margin-top: 8px;
+  font-family: var(--serif);
+  font-size: clamp(2.25rem, 6vw, 3.25rem);
+  font-weight: 800;
+  letter-spacing: -1px;
+  line-height: 1.05;
+  color: var(--ink-0);
+}
+
+.dashboardHeroSub {
+  margin: 12px 0 0;
+  font-size: 14px;
+  color: var(--ink-2);
+  max-width: 52ch;
+}
+
+.dashboardHeroSub strong {
+  color: var(--ink-0);
+  font-weight: 800;
+}
+
+.dashboardHeroMuted {
+  color: var(--ink-3);
+  font-weight: 400;
+}
+
+.dashboardHeroMetrics {
+  align-self: stretch;
+}
+
+.dashboardChartGrid {
+  align-items: stretch;
+}
+
+/* Recharts ResponsiveContainer uses height: 100%; parents need a definite height, not only min-height. */
+.dashboardChart {
+  width: 100%;
+  height: clamp(220px, 52vw, 300px);
+}
+
+.dashboardChartWide {
+  width: 100%;
+  height: clamp(240px, 55vw, 380px);
 }
 
 .rosterTable {

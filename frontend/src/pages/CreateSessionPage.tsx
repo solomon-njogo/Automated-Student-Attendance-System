@@ -38,9 +38,9 @@ export default function CreateSessionPage() {
     setError(null)
     setOk(null)
     try {
-      await api.createSession({ session_date: date })
+      const created = await api.createSession({ session_date: date })
       setOk('Session created.')
-      window.setTimeout(() => nav(`/attendance?session_date=${encodeURIComponent(date)}`), 650)
+      window.setTimeout(() => nav(`/attendance?session_id=${created.id}`), 650)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to save')
     } finally {

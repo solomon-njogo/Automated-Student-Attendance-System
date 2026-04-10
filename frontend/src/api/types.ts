@@ -8,6 +8,32 @@ export type DbHealth = {
   counts: Record<string, number>
 }
 
+export type DashboardCohort = {
+  present: number
+  absent: number
+  excused: number
+  total_slots: number
+  raw_pct: number
+  adjusted_pct: number
+}
+
+export type DashboardSessionPoint = {
+  session_id: number
+  session_date: string
+  present: number
+  absent: number
+  excused: number
+  adjusted_pct: number
+}
+
+export type DashboardOverview = {
+  counts: Record<string, number>
+  mean_student_adjusted_pct: number | null
+  cohort: DashboardCohort
+  by_session: DashboardSessionPoint[]
+  tier_counts: Record<string, number>
+}
+
 export type Student = {
   id: number
   reg_number: string
@@ -38,6 +64,18 @@ export type AttendanceRecord = {
   session_id: number
   session_date: string
   status: AttendanceStatus
+}
+
+export type SessionAttendanceStudent = {
+  student_id: number
+  reg_number: string
+  full_name: string
+  status: AttendanceStatus
+}
+
+export type SessionAttendanceResponse = {
+  session: { id: number; session_date: string }
+  students: SessionAttendanceStudent[]
 }
 
 export type AttendanceSummary = {

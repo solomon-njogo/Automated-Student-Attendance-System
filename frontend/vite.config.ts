@@ -13,10 +13,8 @@ export default defineConfig({
   server: {
     // Local dev only: let the UI call the Flask API without CORS.
     proxy: {
-      '/db': 'http://127.0.0.1:5000',
-      '/students': 'http://127.0.0.1:5000',
-      '/sessions': 'http://127.0.0.1:5000',
-      '/attendance': 'http://127.0.0.1:5000',
+      // Only proxy API — SPA routes like /attendance must stay on Vite.
+      '/api': 'http://127.0.0.1:5000',
     },
   },
 })

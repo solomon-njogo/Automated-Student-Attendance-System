@@ -64,7 +64,7 @@ export default function StudentsPage() {
       </div>
 
       <div className="grid">
-        <Card title="Student roster" subtitle="GET /students">
+        <Card title="Student roster">
           <div className="grid" style={{ gap: 10 }}>
             <Field label="Search" hint={`${ordered.length}/${students.length}`}>
               <input
