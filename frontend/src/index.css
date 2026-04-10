@@ -271,6 +271,13 @@ select {
   border-top: 1px dashed rgba(23, 19, 12, 0.18);
 }
 
+.shellFootnoteRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
 .shellContent {
   padding-top: 22px;
 }
@@ -536,14 +543,43 @@ select {
     linear-gradient(180deg, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.54));
 }
 
+.btnInfo {
+  border-color: rgba(30, 78, 216, 0.32);
+  background: rgba(30, 78, 216, 0.08);
+}
+
 .btnDanger {
   border-color: rgba(180, 35, 24, 0.32);
   background: rgba(180, 35, 24, 0.08);
 }
 
+.btnSmall {
+  padding: 8px 10px;
+  border-radius: 10px;
+  font-size: 12px;
+}
+
 .help {
   font-size: 12px;
   color: var(--ink-2);
+}
+
+.notice {
+  border-radius: var(--radius);
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.55);
+  padding: 12px 14px;
+  font-size: 13px;
+  box-shadow: var(--shadow-sm);
+}
+
+.noticeOk {
+  border-color: rgba(11, 107, 58, 0.3);
+  background: rgba(11, 107, 58, 0.08);
+}
+
+.rowActive td {
+  background: rgba(180, 83, 9, 0.08);
 }
 
 .badge {

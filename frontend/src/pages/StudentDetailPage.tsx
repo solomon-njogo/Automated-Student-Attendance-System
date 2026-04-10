@@ -4,7 +4,6 @@ import { api } from '../api/client'
 import type { AttendanceRecord, AttendanceStatus, StudentSummaryResponse } from '../api/types'
 import Card from '../components/Card'
 import EmptyState from '../components/EmptyState'
-import { Field } from '../components/Field'
 import Stamp from '../components/Stamp'
 
 export default function StudentDetailPage() {
@@ -15,12 +14,6 @@ export default function StudentDetailPage() {
   const [summary, setSummary] = useState<StudentSummaryResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-
-  const [markDate, setMarkDate] = useState('')
-  const [markStatus, setMarkStatus] = useState<AttendanceStatus>('PRESENT')
-  const [saving, setSaving] = useState(false)
-  const [saveError, setSaveError] = useState<string | null>(null)
-  const [saveOk, setSaveOk] = useState<string | null>(null)
 
   const title = useMemo(() => {
     if (!summary) return 'Student'
@@ -56,32 +49,12 @@ export default function StudentDetailPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [studentId])
 
-  async function markAttendance() {
-    const date = markDate.trim()
-    if (!date) {
-      setSaveError("'session_date' is required (YYYY-MM-DD).")
-      return
-    }
-    setSaving(true)
-    setSaveError(null)
-    setSaveOk(null)
-    try {
-      await api.upsertAttendance({ student_id: studentId, session_date: date, status: markStatus })
-      setSaveOk('Attendance saved.')
-      await load()
-    } catch (e) {
-      setSaveError(e instanceof Error ? e.message : 'Failed to save')
-    } finally {
-      setSaving(false)
-    }
-  }
-
   return (
     <>
       <div className="topbar">
         <div className="pageTitle">
           <h1>{title}</h1>
-          <p>Stamp attendance and review computed summary (tier, validity, escalation).</p>
+          <p>Review computed summary (tier, validity, escalation) and the attendance timeline.</p>
         </div>
         <div className="row">
           <Link className="btn" to="/students">
@@ -150,50 +123,6 @@ export default function StudentDetailPage() {
             )}
           </Card>
 
-          <Card title="Stamp attendance" subtitle="POST /attendance" className="stickyCol">
-            <div className="grid" style={{ gap: 10 }}>
-              <div className="row">
-                <Field label="Session date" hint="YYYY-MM-DD">
-                  <input
-                    className="control"
-                    value={markDate}
-                    onChange={(e) => setMarkDate(e.target.value)}
-                    placeholder="2026-03-18"
-                    autoComplete="off"
-                  />
-                </Field>
-                <Field label="Status">
-                  <select
-                    className="control"
-                    value={markStatus}
-                    onChange={(e) => setMarkStatus(e.target.value as AttendanceStatus)}
-                  >
-                    <option value="PRESENT">PRESENT</option>
-                    <option value="ABSENT">ABSENT</option>
-                    <option value="EXCUSED">EXCUSED</option>
-                  </select>
-                </Field>
-              </div>
-
-              {saveError ? (
-                <EmptyState title="Couldn’t save" body={saveError} />
-              ) : saveOk ? (
-                <div className="help">{saveOk}</div>
-              ) : (
-                <div className="help"> </div>
-              )}
-
-              <div className="row">
-                <button className="btn btnPrimary" onClick={markAttendance} disabled={saving}>
-                  {saving ? 'Saving…' : 'Save attendance'}
-                </button>
-                <div className="help">
-                  Using <code>session_date</code> will auto-create the session if missing.
-                </div>
-              </div>
-            </div>
-          </Card>
-
           <Card
             title="Attendance timeline"
             subtitle="GET /students/:id/attendance-records"
@@ -206,7 +135,7 @@ export default function StudentDetailPage() {
               />
             ) : (
               <div className="timeline">
-                {records.map((r) => (
+                {[...records].reverse().map((r) => (
                   <div key={r.session_id} className="timelineRow">
                     <div className="timelineDot" aria-hidden="true" />
                     <div className="timelineMain">

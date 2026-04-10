@@ -251,6 +251,95 @@ def upsert_attendance():
     return jsonify({"student_id": student_id, "session_id": session_id, "status": status.value}), 200
 
 
+@app.route("/attendance/bulk", methods=["POST"])
+def bulk_upsert_attendance():
+    """
+    Bulk record attendance for many students for a single session.
+
+    Accepts either:
+    - session_id + records[{student_id, status}]
+    OR
+    - session_date + records[{student_id, status}] (auto-creates session if missing)
+    """
+
+    data = _require_json()
+    if isinstance(data, tuple):
+        return data
+
+    records_val = data.get("records")
+    if not isinstance(records_val, list) or not records_val:
+        return _json_error("'records' must be a non-empty array.", status_code=400)
+
+    session_id_val = data.get("session_id")
+    session_date_val = data.get("session_date")
+    if session_id_val is None and session_date_val is None:
+        return _json_error("Provide either 'session_id' or 'session_date'.", status_code=400)
+
+    # Parse and validate records before opening a transaction.
+    parsed: list[tuple[int, AttendanceStatus]] = []
+    for i, rec in enumerate(records_val):
+        if not isinstance(rec, dict):
+            return _json_error(f"records[{i}] must be an object.", status_code=400)
+
+        try:
+            student_id = int(rec.get("student_id"))
+        except (TypeError, ValueError):
+            return _json_error(f"records[{i}].student_id must be an integer.", status_code=400)
+
+        status_raw = str(rec.get("status", "")).strip().upper()
+        try:
+            status = AttendanceStatus(status_raw)
+        except ValueError:
+            return _json_error(
+                f"records[{i}].status invalid. Expected one of: {', '.join(s.value for s in AttendanceStatus)}",
+                status_code=400,
+            )
+
+        parsed.append((student_id, status))
+
+    try:
+        with _db_connect() as conn:
+            if session_id_val is not None:
+                try:
+                    session_id = int(session_id_val)
+                except (TypeError, ValueError):
+                    return _json_error("'session_id' must be an integer.", status_code=400)
+
+                ses = conn.execute("SELECT id FROM sessions WHERE id = ?", (session_id,)).fetchone()
+                if not ses:
+                    return _json_error(f"Session {session_id} not found.", status_code=404)
+            else:
+                session_date = str(session_date_val).strip()
+                if not session_date:
+                    return _json_error("'session_date' cannot be empty.", status_code=400)
+                session_id = _get_or_create_session_id(conn, session_date)
+
+            # Validate students exist (single query).
+            student_ids = sorted({sid for (sid, _st) in parsed})
+            qmarks = ",".join("?" for _ in student_ids)
+            existing_rows = conn.execute(
+                f"SELECT id FROM students WHERE id IN ({qmarks})",
+                tuple(student_ids),
+            ).fetchall()
+            existing = {int(r["id"]) for r in existing_rows}
+            missing = [sid for sid in student_ids if sid not in existing]
+            if missing:
+                return _json_error(f"Students not found: {', '.join(map(str, missing))}", status_code=404)
+
+            conn.executemany(
+                """
+                INSERT INTO attendance_records (student_id, session_id, status)
+                VALUES (?, ?, ?)
+                ON CONFLICT(student_id, session_id) DO UPDATE SET status = excluded.status
+                """,
+                [(sid, session_id, st.value) for (sid, st) in parsed],
+            )
+    except sqlite3.IntegrityError as exc:
+        return _json_error(f"Could not record attendance: {exc}", status_code=409)
+
+    return jsonify({"session_id": session_id, "saved": len(parsed)}), 200
+
+
 @app.route("/students/<int:student_id>/attendance-records", methods=["GET"])
 def student_attendance_records(student_id: int):
     with _db_connect() as conn:

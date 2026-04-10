@@ -2,6 +2,7 @@ import type {
   ApiError,
   AttendanceRecord,
   AttendanceStatus,
+  AttendanceBulkUpsertResponse,
   AttendanceUpsertResponse,
   DbHealth,
   Session,
@@ -56,6 +57,18 @@ export const api = {
 
   upsertAttendance(input: { student_id: number; session_date: string; status: AttendanceStatus }): Promise<AttendanceUpsertResponse> {
     return requestJson<AttendanceUpsertResponse>('/attendance', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(input),
+    })
+  },
+
+  bulkUpsertAttendance(input: {
+    session_id?: number
+    session_date?: string
+    records: { student_id: number; status: AttendanceStatus }[]
+  }): Promise<AttendanceBulkUpsertResponse> {
+    return requestJson<AttendanceBulkUpsertResponse>('/attendance/bulk', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(input),

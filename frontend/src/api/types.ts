@@ -29,6 +29,11 @@ export type AttendanceUpsertResponse = {
   status: AttendanceStatus
 }
 
+export type AttendanceBulkUpsertResponse = {
+  session_id: number
+  saved: number
+}
+
 export type AttendanceRecord = {
   session_id: number
   session_date: string

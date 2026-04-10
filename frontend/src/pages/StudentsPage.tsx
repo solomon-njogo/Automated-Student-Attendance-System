@@ -12,10 +12,6 @@ export default function StudentsPage() {
   const [error, setError] = useState<string | null>(null)
 
   const [q, setQ] = useState('')
-  const [regNumber, setRegNumber] = useState('')
-  const [fullName, setFullName] = useState('')
-  const [saving, setSaving] = useState(false)
-  const [saveError, setSaveError] = useState<string | null>(null)
 
   async function load() {
     setLoading(true)
@@ -46,79 +42,31 @@ export default function StudentsPage() {
     })
   }, [q, students])
 
-  async function createStudent() {
-    const rn = regNumber.trim()
-    const fn = fullName.trim()
-    if (!rn || !fn) {
-      setSaveError("Both 'reg_number' and 'full_name' are required.")
-      return
-    }
-    setSaving(true)
-    setSaveError(null)
-    try {
-      await api.createStudent({ reg_number: rn, full_name: fn })
-      setRegNumber('')
-      setFullName('')
-      await load()
-    } catch (e) {
-      setSaveError(e instanceof Error ? e.message : 'Failed to save')
-    } finally {
-      setSaving(false)
-    }
-  }
+  const ordered = useMemo(() => {
+    return [...filtered].sort((a, b) => a.id - b.id)
+  }, [filtered])
 
   return (
     <>
       <div className="topbar">
         <div className="pageTitle">
           <h1>Students</h1>
-          <p>Create a roster, open a profile, then stamp attendance by date.</p>
+          <p>Search and open a student profile.</p>
         </div>
         <div className="row">
+          <Link className="btn btnPrimary" to="/students/new">
+            Add student
+          </Link>
           <button className="btn" onClick={load} disabled={loading}>
             Refresh
           </button>
         </div>
       </div>
 
-      <div className="grid grid2">
-        <Card title="Create student" subtitle="POST /students">
-          <div className="grid" style={{ gap: 10 }}>
-            <div className="row">
-              <Field label="Registration number" hint="Must be unique">
-                <input
-                  className="control"
-                  value={regNumber}
-                  onChange={(e) => setRegNumber(e.target.value)}
-                  placeholder="ICT/123/2026"
-                  autoComplete="off"
-                />
-              </Field>
-              <Field label="Full name">
-                <input
-                  className="control"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  placeholder="Jane Doe"
-                  autoComplete="off"
-                />
-              </Field>
-            </div>
-
-            {saveError ? <div className="help">Error: {saveError}</div> : <div className="help"> </div>}
-
-            <div className="row">
-              <button className="btn btnPrimary" onClick={createStudent} disabled={saving}>
-                {saving ? 'Creating…' : 'Create student'}
-              </button>
-              <div className="help">Tip: realistic reg numbers look better in demos.</div>
-            </div>
-          </div>
-        </Card>
-
+      <div className="grid">
         <Card title="Student roster" subtitle="GET /students">
           <div className="grid" style={{ gap: 10 }}>
-            <Field label="Search" hint={`${filtered.length}/${students.length}`}>
+            <Field label="Search" hint={`${ordered.length}/${students.length}`}>
               <input
                 className="control"
                 value={q}
@@ -131,8 +79,8 @@ export default function StudentsPage() {
               <div className="help">Loading…</div>
             ) : error ? (
               <EmptyState title="Couldn’t load students" body={error} />
-            ) : filtered.length === 0 ? (
-              <EmptyState title="No students yet" body="Create one on the left to begin." />
+            ) : ordered.length === 0 ? (
+              <EmptyState title="No students yet" body="Add a student to begin." hint="Use the “Add student” button above." />
             ) : (
               <>
                 <div className="tableWrap rosterTable">
@@ -146,7 +94,7 @@ export default function StudentsPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {filtered.map((s) => (
+                      {ordered.map((s) => (
                         <tr key={s.id}>
                           <td>{s.id}</td>
                           <td style={{ color: 'var(--ink-3)' }}>{s.reg_number}</td>
@@ -163,7 +111,7 @@ export default function StudentsPage() {
                 </div>
 
                 <div className="rosterList">
-                  {filtered.map((s) => (
+                  {ordered.map((s) => (
                     <div key={s.id} className="rosterCard">
                       <div className="rosterMeta">
                         <div className="rosterName">{s.full_name}</div>

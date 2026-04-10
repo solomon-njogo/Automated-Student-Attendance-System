@@ -4,6 +4,9 @@ import DashboardPage from './pages/DashboardPage'
 import SessionsPage from './pages/SessionsPage'
 import StudentsPage from './pages/StudentsPage'
 import StudentDetailPage from './pages/StudentDetailPage'
+import CreateStudentPage from './pages/CreateStudentPage'
+import CreateSessionPage from './pages/CreateSessionPage'
+import AttendancePage from './pages/AttendancePage'
 
 function App() {
   return (
@@ -11,8 +14,11 @@ function App() {
       <Routes>
         <Route path="/" element={<DashboardPage />} />
         <Route path="/students" element={<StudentsPage />} />
+        <Route path="/students/new" element={<CreateStudentPage />} />
         <Route path="/students/:studentId" element={<StudentDetailPage />} />
         <Route path="/sessions" element={<SessionsPage />} />
+        <Route path="/sessions/new" element={<CreateSessionPage />} />
+        <Route path="/attendance" element={<AttendancePage />} />
       </Routes>
     </LayoutShell>
   )
