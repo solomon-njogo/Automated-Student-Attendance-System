@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import sqlite3
 from pathlib import Path
 from typing import Any
@@ -293,5 +294,7 @@ def student_attendance_summary(student_id: int):
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", "5000"))
+    # Render (and most PaaS) requires binding to 0.0.0.0 and the provided $PORT.
+    app.run(host="0.0.0.0", port=port, debug=False)
 

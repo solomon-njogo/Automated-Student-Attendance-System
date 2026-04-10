@@ -65,8 +65,6 @@ db.sqlite3-journal
 instance/
 .webassets-cache
 
-# SQLite database file(s)
-db/attendance.db
 
 # Scrapy stuff:
 .scrapy
