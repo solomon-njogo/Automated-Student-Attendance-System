@@ -1,210 +1,244 @@
 ## Automated Student Attendance System
 
 ### Overview
-The **Automated Student Attendance System** is a simple rule-based web application that helps determine whether a student meets attendance requirements based on recorded class attendance.
 
-The system is built using **Python**, **Flask**, and **SQLite**, and focuses on demonstrating how attendance rules can be modeled and checked programmatically.
+The **Automated Student Attendance System** is a web application that records class attendance, applies rule-based policies (percentages, tiers, validity, escalation), and surfaces cohort and per-student analytics.
 
+The backend is **Python**, **Flask**, and **SQLite**. The UI is a **React** single-page app built with **Vite** and **TypeScript**, served from `ui_dist` by Flask in production and proxied to the API during local Vite development.
+
+**Live deployment (Render):** [https://automated-student-attendance-system-m8mw.onrender.com/](https://automated-student-attendance-system-m8mw.onrender.com/) — the same URL is configured in this repository’s GitHub **About** section (website link).
 
 ### Objectives
-- **Model attendance policies** in code using clear, rule-based logic.
-- **Store and manage** student and attendance data in an SQLite database.
-- **Evaluate** whether each student meets the minimum attendance threshold.
-- **Provide simple outputs** (e.g., valid/invalid attendance) through a Flask-based interface or scripts.
 
+- **Model attendance policies** in code using clear, rule-based logic (`attendance_logic.py`).
+- **Store and manage** student and attendance data in SQLite.
+- **Evaluate** whether each student meets policy thresholds (raw vs adjusted %, tier, validity, escalation).
+- **Expose** data through a JSON API under `/api` and a responsive web UI (dashboard, students, sessions, attendance).
 
-### Tech Stack
-- **Language**: Python  
-  - Use `py` to run Python commands in the terminal on Windows.
-- **Web framework**: Flask
-- **Database**: SQLite (`db/attendance.db`)
-- **Methodology**: Rule-based logic (e.g., percentage-based thresholds)
+### Tech stack
 
+| Layer | Technologies |
+|--------|----------------|
+| Backend | Python 3, Flask |
+| Database | SQLite (`db/attendance.db`) |
+| Policy engine | Rule-based logic in `attendance_logic.py` |
+| Frontend | React 19, TypeScript, Vite, React Router, Recharts |
+| Local server | **Windows:** Waitress (via `run.py`). **Linux / Render:** Gunicorn (`gunicorn run:app`) |
 
-### Project Structure (high-level)
-- `app.py` – Flask entrypoint and HTTP API.
-- `requirements.txt` – Python dependencies.
-- `db/attendance.db` – SQLite database file (created after initialization).
-- `db/schemas/schema.sql` – Database schema definition.
-- `db/init_db.py` – Helper script to create and migrate the database.
+On Windows, use `py` to run Python commands in the terminal.
 
+### Project structure (high-level)
 
-### Setup & Installation
+| Path | Role |
+|------|------|
+| `app.py` | Flask app: static SPA + `/api/*` routes |
+| `run.py` | Builds the frontend, then starts the server; exposes `app` for Gunicorn |
+| `attendance_logic.py` | Attendance summaries, tiers, validity, escalation |
+| `requirements.txt` | Python dependencies |
+| `render.yaml` | Example Render.com web service (build + start) |
+| `db/attendance.db` | SQLite database (created after init) |
+| `db/schemas/schema.sql` | Schema |
+| `db/init_db.py` | Create / migrate the database |
+| `frontend/` | Vite + React source (`npm run dev`, `npm run build`) |
+| `ui_dist/` | Production build output (consumed by Flask) |
+
+### Setup and installation
 
 #### 1. Prerequisites
-- Python 3.x installed and available as `py` on Windows.
+
+- Python 3.x (`py` on Windows)
+- **Node.js** (includes `npm`) — required to build the UI (`run.py` runs `npm run build` in `frontend/`)
 
 #### 2. Clone the repository
+
 ```bash
 git clone https://github.com/solomon-njogo/Automated-Student-Attendance-System
 cd Automated-Student-Attendance-System
 ```
 
 #### 3. Create and activate a virtual environment
-It is recommended to use a virtual environment for this project.
 
 ```bash
 py -m venv venv
-venv\Scripts\activate
 ```
 
-If you are using a Unix-like shell (e.g., Git Bash), you can also activate with:
+Windows (cmd): `venv\Scripts\activate`  
+Git Bash / Unix-like: `source venv/Scripts/activate`
 
-```bash
-source venv/Scripts/activate
-```
+#### 4. Install Python dependencies
 
-#### 4. Install dependencies
 ```bash
 py -m pip install -r requirements.txt
 ```
 
-#### 5. Initialize the database
-This will create `db/attendance.db` (if it does not exist) and apply the schema from `db/schemas/schema.sql`.
+#### 5. Install frontend dependencies
 
 ```bash
-py db\init_db.py
+npm ci --prefix frontend
 ```
 
-### Running the Application
+(Use `npm install --prefix frontend` if you do not rely on a lockfile workflow.)
 
-With the virtual environment activated, the database created and initialized as well as dependencies installed:
+#### 6. Initialize the database
+
+Creates `db/attendance.db` and applies `db/schemas/schema.sql`:
 
 ```bash
-py app.py
+py db/init_db.py
 ```
 
-By default, Flask will start a development server (e.g., on `http://127.0.0.1:5000/`).  
-Open the URL shown in the terminal to access the API.  
-If the UI has been built, the root endpoint `/` will serve the UI.
+### Running the application
 
-#### One-command run (build UI + start server)
-From the project root:
+#### Recommended: one command (build UI + serve)
 
 ```bash
 py run.py
 ```
 
-#### Quick API test (curl examples)
-Assuming the server is running on `http://127.0.0.1:5000`:
+- Builds the SPA into `ui_dist`, then starts the server.
+- Default URL: `http://127.0.0.1:5000/` (UI at `/`, API under `/api/`).
+- **Optional env vars:** `PORT`, `HOST` (default bind `0.0.0.0`), `AUTO_RELOAD=1` (Flask debug + reloader), `UI_WATCH=1` with `AUTO_RELOAD=1` (Vite `build --watch` for `ui_dist`).
+
+On Windows, `run.py` uses **Waitress**. On non-Windows without auto-reload, it uses Flask’s built-in server.
+
+#### Backend only (UI must already be built)
+
+If `ui_dist` is up to date:
 
 ```bash
-# Check DB + schema health
-curl http://127.0.0.1:5000/db/health
-
-# Create a student
-curl -X POST http://127.0.0.1:5000/students ^
-  -H "Content-Type: application/json" ^
-  -d "{\"reg_number\":\"ICT/123/2026\",\"full_name\":\"Jane Doe\"}"
-
-# Create a session by date
-curl -X POST http://127.0.0.1:5000/sessions ^
-  -H "Content-Type: application/json" ^
-  -d "{\"session_date\":\"2026-03-18\"}"
-
-# Record attendance (uses session_date and auto-creates session if missing)
-curl -X POST http://127.0.0.1:5000/attendance ^
-  -H "Content-Type: application/json" ^
-  -d "{\"student_id\":1,\"session_date\":\"2026-03-18\",\"status\":\"PRESENT\"}"
-
-# Compute attendance summary (raw + adjusted %, tier, validity, escalation)
-curl http://127.0.0.1:5000/students/1/attendance-summary
+py app.py
 ```
 
+If `ui_dist/index.html` is missing, `/` returns a short JSON message; the API still works at `/api`.
 
-### Core Scope (planned)
-- **Student management**: Store basic student information.
-- **Attendance records**: Track attendance per class/session.
-- **Rule-based evaluation**: Determine if a student’s attendance is:
-  - Valid (meets or exceeds the required percentage), or  
-  - Invalid (below the requirement).
-- **Testing with mock data**: Use sample data to validate the logic and edge cases.
+#### Frontend dev server (hot reload) + API
 
-### Attendance Policies Implemented (Week 1)
-The system implements a **rule-based attendance policy engine** in `attendance_logic.py`, based on the Week 1 policy research.
+Terminal 1 — API on port 5000:
 
-- **Attendance % (raw)** — `(PRESENT / TOTAL) * 100`, where `TOTAL` is every recorded session (present + absent + excused).
-- **Attendance % (adjusted)** — `(PRESENT / (TOTAL - EXCUSED)) * 100`; excused sessions are not counted in the denominator.
-  - The system uses **adjusted %** to determine the student’s tier, validity, and escalation level.
-  - Raw % is still computed and returned for transparency.
+```bash
+py app.py
+```
 
-#### Tier thresholds (based on adjusted %)
-- **91%–100%**: Excellent
-- **75%–90%**: Satisfactory
-- **60%–74%**: Low / At Risk
-- **50%–59%**: Critical
-- **Below 50%**: Fail / Barred
+Terminal 2 — Vite (proxies `/api` to Flask):
 
-#### Validity mapping (based on adjusted %)
-- **>= 75%**: Valid
-- **60%–74%**: At Risk
-- **< 60%**: Invalid / Barred
+```bash
+npm run dev --prefix frontend
+```
 
-#### Notification / escalation triggers (based on adjusted %)
-- **< 85% and >= 75%**: Early Warning
-- **< 75%**: Academic Alert
-- **< 65%**: Formal Intervention
-- **< 50%**: Critical - Barred
+Open the URL Vite prints (typically `http://127.0.0.1:5173`). API calls go to `/api/...` via the proxy.
 
-### Database Schema (summary)
+### API quick test (`curl`)
 
-The project uses a simple SQLite database with the following core tables:
+All JSON routes are under **`/api`**. Examples assume the server on `http://127.0.0.1:5000`.
 
-- **students**
-  - `id` `INTEGER PRIMARY KEY AUTOINCREMENT`
-  - `reg_number` `TEXT NOT NULL UNIQUE`
-  - `full_name` `TEXT NOT NULL`
-  - `created_at` `TIMESTAMP DEFAULT CURRENT_TIMESTAMP`
+```bash
+# Database health
+curl http://127.0.0.1:5000/api/db/health
 
-- **sessions**
-  - `id` `INTEGER PRIMARY KEY AUTOINCREMENT`
-  - `session_date` `DATE NOT NULL UNIQUE`
-  - `created_at` `TIMESTAMP DEFAULT CURRENT_TIMESTAMP`
+# Dashboard aggregates
+curl http://127.0.0.1:5000/api/dashboard/overview
 
-- **attendance_records**
-  - `id` `INTEGER PRIMARY KEY AUTOINCREMENT`
-  - `student_id` `INTEGER NOT NULL` (FK to `students.id`, `ON DELETE CASCADE`)
-  - `session_id` `INTEGER NOT NULL` (FK to `sessions.id`, `ON DELETE CASCADE`)
-  - `status` `TEXT NOT NULL` (`'PRESENT'`, `'ABSENT'`, or `'EXCUSED'`)
-  - `created_at` `TIMESTAMP DEFAULT CURRENT_TIMESTAMP`
-  - Unique constraint on (`student_id`, `session_id`) to prevent duplicate records for the same student on the same session.
+# Create a student
+curl -X POST http://127.0.0.1:5000/api/students \
+  -H "Content-Type: application/json" \
+  -d '{"reg_number":"ICT/123/2026","full_name":"Jane Doe"}'
 
-For the full schema, see `db/schemas/schema.sql`.
+# Create a session by date
+curl -X POST http://127.0.0.1:5000/api/sessions \
+  -H "Content-Type: application/json" \
+  -d '{"session_date":"2026-03-18"}'
 
-### Development Roadmap
-- **Week 1: Study attendance policies**
-  - Review university/college attendance rules (e.g., minimum percentage required, handling excused absences).
-  - Translate policies into clear, programmable rules.
+# Record attendance (session_date auto-creates session if missing)
+curl -X POST http://127.0.0.1:5000/api/attendance \
+  -H "Content-Type: application/json" \
+  -d '{"student_id":1,"session_date":"2026-03-18","status":"PRESENT"}'
 
-- **Week 2: Design & create the database**
-  - Design tables for students, courses (if any), and attendance records.
-  - Implement the SQLite schema and connection logic in Python.
+# Per-student summary (raw + adjusted %, tier, validity, escalation)
+curl http://127.0.0.1:5000/api/students/1/attendance-summary
+```
 
-- **Week 3: Implement attendance logic**
-  - Write Python functions to calculate attendance percentage.
-  - Apply rule-based logic to classify attendance as valid/invalid.
-  - Expose this logic via Flask routes or scripts.
+Other useful endpoints: `GET /api/students`, `GET /api/sessions`, `GET /api/sessions/<id>/attendance`, `GET /api/students/<id>/attendance-records`, `POST /api/attendance/bulk`.
 
-- **Week 4: Testing with mock data**
-  - Populate the database with sample students and attendance records.
-  - Run test cases (normal, boundary, and edge cases).
-  - Fix any issues in logic or data handling.
+### Features (current)
 
-- **Week 5: Presentation & documentation**
-  - Prepare a short demo of the system (e.g., web interface or CLI output).
-  - Summarize findings: how rules are applied, limitations, and possible improvements.
-  - Finalize this `README.md` and any additional project documentation.
+- **Students:** list, create, per-student attendance history and policy summary.
+- **Sessions:** list, create, per-session roster with statuses (missing rows treated as absent where documented in code).
+- **Attendance:** single and bulk upsert (`PRESENT` / `ABSENT` / `EXCUSED`).
+- **Dashboard:** cohort overview (charts / aggregates via `/api/dashboard/overview`).
+- **SPA UI:** client-side routes (e.g. student detail) with Flask fallback to `index.html`.
 
+### Attendance policies implemented (Week 1)
 
-### Future Improvements
-- Add authentication for students and lecturers.
-- Support multiple courses and sections.
-- Export attendance reports (PDF/CSV).
-- Integrate with institutional systems (e.g., LMS or student portals).
+Implemented in `attendance_logic.py` from the Week 1 policy research.
 
-This project is part of the **APT3020** coursework and is completed as **group work**, aiming to demonstrate practical application of rule-based systems to real-world academic policies.
+- **Attendance % (raw)** — `(PRESENT / TOTAL) * 100` over all recorded sessions (present + absent + excused).
+- **Attendance % (adjusted)** — `(PRESENT / (TOTAL - EXCUSED)) * 100`; excused sessions are excluded from the denominator. **Adjusted %** drives tier, validity, and escalation; raw % is still returned for transparency.
 
-### Group Members
+#### Tier thresholds (adjusted %)
+
+- **91%–100%**: Excellent  
+- **75%–90%**: Satisfactory  
+- **60%–74%**: Low / At Risk  
+- **50%–59%**: Critical  
+- **Below 50%**: Fail / Barred  
+
+#### Validity mapping (adjusted %)
+
+- **≥ 75%**: Valid  
+- **60%–74%**: At Risk  
+- **< 60%**: Invalid / Barred  
+
+#### Notification / escalation triggers (adjusted %)
+
+- **< 85% and ≥ 75%**: Early Warning  
+- **< 75%**: Academic Alert  
+- **< 65%**: Formal Intervention  
+- **< 50%**: Critical - Barred  
+
+### Database schema (summary)
+
+- **students** — `id`, `reg_number` (unique), `full_name`, `created_at`  
+- **sessions** — `id`, `session_date` (unique), `created_at`  
+- **attendance_records** — `id`, `student_id` (FK), `session_id` (FK), `status` (`PRESENT` | `ABSENT` | `EXCUSED`), `created_at`, unique (`student_id`, `session_id`)  
+
+Full DDL: `db/schemas/schema.sql`.
+
+### Deployment (Render)
+
+The app is hosted on **[Render](https://render.com)**.
+
+| | |
+|--|--|
+| **Live URL** | [https://automated-student-attendance-system-m8mw.onrender.com/](https://automated-student-attendance-system-m8mw.onrender.com/) |
+| **GitHub** | The live link is also available from the repository **About** section (website field). |
+
+`render.yaml` defines the **Python** web service: install Python deps, `npm ci` + `npm run build` in `frontend/`, then start with:
+
+`gunicorn run:app --bind 0.0.0.0:$PORT`
+
+Adjust the service name or plan in the YAML as needed.
+
+### Course milestones (original plan)
+
+- **Week 1:** Attendance policy research → rules in code.  
+- **Week 2:** SQLite schema and initialization.  
+- **Week 3:** Attendance logic and Flask API.  
+- **Week 4:** Testing with mock / sample data.  
+- **Week 5:** Demo, documentation, presentation.  
+
+The codebase now includes the API, policy engine, and a React UI on top of these foundations.
+
+### Future improvements
+
+- Authentication for students and lecturers  
+- Multiple courses and sections  
+- Export reports (PDF/CSV)  
+- Integration with institutional systems (LMS, portals)  
+
+This project is part of **APT3020** coursework (**group work**), demonstrating rule-based systems applied to academic attendance policies.
+
+### Group members
+
 1. Solomon Njogo  
-2. Ted Mbatia
-3. Shawn Njoroge
+2. Ted Mbatia  
+3. Shawn Njoroge  

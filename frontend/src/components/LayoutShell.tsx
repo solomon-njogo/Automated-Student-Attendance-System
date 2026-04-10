@@ -6,9 +6,11 @@ import Stamp from './Stamp'
 
 type NavItem = { to: string; label: string; end?: boolean }
 
+const GROUP_MEMBERS = ['Solomon Njogo', 'Ted Mbatia', 'Shawn Njoroge'] as const
+
 export default function LayoutShell({
   children,
-  title = 'Attendance Demo',
+  title = 'Automated Student Attendance System',
   subtitle = '',
 }: {
   children: React.ReactNode
@@ -123,7 +125,19 @@ export default function LayoutShell({
       </aside>
 
       <main className="content shellContent">
-        <div className="container">{children}</div>
+        <div className="shellContentGrow">
+          <div className="container">{children}</div>
+        </div>
+        <footer className="shellPageFooter" aria-label="Course group members">
+          <div className="shellPageFooterInner">
+            <span className="shellPageFooterLabel">APT3020 — Group members</span>
+            <ul className="shellPageFooterList">
+              {GROUP_MEMBERS.map((name) => (
+                <li key={name}>{name}</li>
+              ))}
+            </ul>
+          </div>
+        </footer>
       </main>
     </div>
   )

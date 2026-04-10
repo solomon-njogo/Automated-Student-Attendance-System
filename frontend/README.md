@@ -1,73 +1,52 @@
-# React + TypeScript + Vite
+# Attendance system — frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React + TypeScript UI for the **Automated Student Attendance System**. It talks to the Flask API at `/api/*`.
 
-Currently, two official plugins are available:
+## Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- React 19, React Router 7, Vite 8
+- Recharts (dashboard charts)
+- ESLint 9 + TypeScript ESLint
 
-## React Compiler
+## Scripts
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+| Command | Purpose |
+|--------|---------|
+| `npm run dev` | Vite dev server (HMR). Proxies `/api` to `http://127.0.0.1:5000` — run the Flask app from the repo root first. |
+| `npm run build` | Typecheck + production build into **`../ui_dist`** (Flask serves this folder). |
+| `npm run preview` | Local preview of the production build. |
+| `npm run lint` | ESLint. |
 
-## Expanding the ESLint configuration
+## Local development
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+1. From the **repository root**: create the DB if needed (`py db/init_db.py`), install Python deps, then start the API, e.g. `py app.py` (port **5000**).
+2. From **this folder**: `npm ci` (or `npm install`), then `npm run dev`.
+3. Open the URL Vite prints (usually `http://127.0.0.1:5173`). Browser requests to `/api/...` are forwarded to Flask.
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+Production-style runs use `py run.py` at the repo root (builds this app, then serves with Flask).
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+## Routes
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+| Path | Page |
+|------|------|
+| `/` | Dashboard |
+| `/students` | Student list |
+| `/students/new` | Create student |
+| `/students/:studentId` | Student detail + attendance summary |
+| `/sessions` | Session list |
+| `/sessions/new` | Create session |
+| `/sessions/:sessionId` | Session roster / attendance for that day |
+| `/attendance` | Record attendance (bulk-friendly flow) |
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Source layout
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+- `src/App.tsx` — route table
+- `src/main.tsx` — entry, `BrowserRouter`
+- `src/components/` — layout (`LayoutShell`), cards, form fields, empty states
+- `src/pages/` — feature screens
+- `src/api/client.ts` — `fetch` wrappers for `/api`
+- `src/api/types.ts` — shared API response types
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+## Build output
+
+`vite.config.ts` sets `build.outDir` to `../ui_dist` and `emptyOutDir: true` so Flask can serve a single SPA bundle from the monorepo root.
